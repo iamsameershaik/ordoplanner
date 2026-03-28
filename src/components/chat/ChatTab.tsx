@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Plus, MapPin, Loader2, Bot, User } from 'lucide-react';
+import { Send, Plus, MapPin, Loader2, Bot, User, Trash2 } from 'lucide-react';
 import type { ChatMessage, ItineraryDay, Place, ParsedAction, ItineraryEvent } from '../../types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -186,9 +186,8 @@ export default function ChatTab({
         body: JSON.stringify({ messages: apiMessages, tripContext }),
       });
 
-      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const data = await res.json() as { content?: string; error?: string };
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error ?? `Request failed: ${res.status}`);
 
       const assistantMsg: ChatMessage = {
         id: genId(),
@@ -221,6 +220,17 @@ export default function ChatTab({
 
   return (
     <div className="flex flex-col h-[calc(100vh-57px-64px)]">
+      {messages.length > 0 && (
+        <div className="flex justify-end px-4 pt-3 pb-1">
+          <button
+            onClick={() => { onUpdateMessages([]); setError(null); }}
+            className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-red-400 transition-colors"
+          >
+            <Trash2 size={12} />
+            Clear chat
+          </button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-5 py-8">
