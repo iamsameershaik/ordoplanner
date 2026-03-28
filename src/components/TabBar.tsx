@@ -1,6 +1,6 @@
-import { type LucideIcon, Map, CheckSquare, UtensilsCrossed, MapPin, FileText, MessageSquare } from 'lucide-react';
+import { type LucideIcon, CalendarDays, CheckSquare, UtensilsCrossed, MapPin, FileText, MessageSquare, Map } from 'lucide-react';
 
-export type Tab = 'itinerary' | 'checklist' | 'meals' | 'places' | 'notes' | 'chat';
+export type Tab = 'itinerary' | 'checklist' | 'meals' | 'places' | 'notes' | 'chat' | 'map';
 
 interface TabBarProps {
   active: Tab;
@@ -8,12 +8,13 @@ interface TabBarProps {
 }
 
 const tabs: { id: Tab; label: string; Icon: LucideIcon }[] = [
-  { id: 'itinerary', label: 'Itinerary', Icon: Map },
-  { id: 'checklist', label: 'Checklist', Icon: CheckSquare },
+  { id: 'itinerary', label: 'Plan', Icon: CalendarDays },
+  { id: 'checklist', label: 'Pack', Icon: CheckSquare },
   { id: 'meals', label: 'Meals', Icon: UtensilsCrossed },
   { id: 'places', label: 'Places', Icon: MapPin },
+  { id: 'map', label: 'Map', Icon: Map },
   { id: 'notes', label: 'Notes', Icon: FileText },
-  { id: 'chat', label: 'AI Chat', Icon: MessageSquare },
+  { id: 'chat', label: 'AI', Icon: MessageSquare },
 ];
 
 export default function TabBar({ active, onChange }: TabBarProps) {

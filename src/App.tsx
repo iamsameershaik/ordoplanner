@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import type { Tab } from './components/TabBar';
 import TabBar from './components/TabBar';
 import ItineraryTab from './components/itinerary/ItineraryTab';
@@ -7,6 +7,7 @@ import MealsTab from './components/meals/MealsTab';
 import PlacesTab from './components/places/PlacesTab';
 import NotesTab from './components/notes/NotesTab';
 import ChatTab from './components/chat/ChatTab';
+const MapTab = lazy(() => import('./components/map/MapTab'));
 import OfflineBanner from './components/OfflineBanner';
 import { useSupabaseState } from './hooks/useSupabaseState';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
@@ -237,7 +238,17 @@ export default function App() {
 
       <OfflineBanner isOnline={isOnline} />
 
-      <main className="max-w-2xl mx-auto pb-24">
+      {activeTab === 'map' && (
+        <Suspense fallback={<div className="flex items-center justify-center h-[calc(100vh-57px-64px)]"><div className="w-5 h-5 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" /></div>}>
+          <MapTab
+            itinerary={itinerary}
+            places={places}
+            onAddPlace={handleAddPlace}
+          />
+        </Suspense>
+      )}
+
+      <main className={`max-w-2xl mx-auto pb-24 ${activeTab === 'map' ? 'hidden' : ''}`}>
         {activeTab === 'itinerary' && (
           <ItineraryTab
             days={itinerary}

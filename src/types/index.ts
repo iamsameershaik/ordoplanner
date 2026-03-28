@@ -58,6 +58,21 @@ export interface Place {
   description: string;
   shotTip: string;
   visited: boolean;
+  lat?: number;
+  lng?: number;
+}
+
+export type TripPinType = 'hotel' | 'coach_dropoff' | 'coach_pickup';
+
+export interface TripPin {
+  id: string;
+  trip_id: string;
+  type: TripPinType;
+  name: string | null;
+  address: string | null;
+  lat: number;
+  lng: number;
+  created_at: string;
 }
 
 export interface SavedLink {

@@ -61,7 +61,7 @@ Keep responses concise, warm, and practical. Use markdown for formatting.`;
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
+        model: "claude-sonnet-4-5",
         max_tokens: 1024,
         system: systemPrompt,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
