@@ -6,7 +6,7 @@ import ChecklistTab from './components/checklist/ChecklistTab';
 import MealsTab from './components/meals/MealsTab';
 import PlacesTab from './components/places/PlacesTab';
 import NotesTab from './components/notes/NotesTab';
-import { useLocalStorage } from './hooks/useLocalStorage';
+import { useSupabaseState } from './hooks/useSupabaseState';
 import {
   initialItinerary,
   initialChecklist,
@@ -22,12 +22,15 @@ function genId() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('itinerary');
-  const [itinerary, setItinerary] = useLocalStorage<ItineraryDay[]>('nw_itinerary', initialItinerary);
-  const [checklist, setChecklist] = useLocalStorage<ChecklistGroup[]>('nw_checklist', initialChecklist);
-  const [meals, setMeals] = useLocalStorage<DayMeals[]>('nw_meals', initialMeals);
-  const [places, setPlaces] = useLocalStorage<Place[]>('nw_places', initialPlaces);
-  const [notes, setNotes] = useLocalStorage<string>('nw_notes', '');
-  const [links, setLinks] = useLocalStorage<SavedLink[]>('nw_links', initialLinks);
+
+  const [itinerary, itineraryLoaded, setItinerary] = useSupabaseState<ItineraryDay[]>('nw_itinerary', initialItinerary);
+  const [checklist, checklistLoaded, setChecklist] = useSupabaseState<ChecklistGroup[]>('nw_checklist', initialChecklist);
+  const [meals, mealsLoaded, setMeals] = useSupabaseState<DayMeals[]>('nw_meals', initialMeals);
+  const [places, placesLoaded, setPlaces] = useSupabaseState<Place[]>('nw_places', initialPlaces);
+  const [notes, notesLoaded, setNotes] = useSupabaseState<string>('nw_notes', '');
+  const [links, linksLoaded, setLinks] = useSupabaseState<SavedLink[]>('nw_links', initialLinks);
+
+  const allLoaded = itineraryLoaded && checklistLoaded && mealsLoaded && placesLoaded && notesLoaded && linksLoaded;
 
   // Itinerary handlers
   const handleToggleEvent = (dayId: string, eventId: string) => {
@@ -127,7 +130,7 @@ export default function App() {
     setPlaces(prev => prev.map(p => p.id !== id ? p : { ...p, visited: !p.visited }));
   };
 
-  // Notes handlers
+  // Links handlers
   const handleAddLink = (label: string, url: string) => {
     setLinks(prev => [...prev, { id: genId(), label, url }]);
   };
@@ -135,6 +138,15 @@ export default function App() {
   const handleDeleteLink = (id: string) => {
     setLinks(prev => prev.filter(l => l.id !== id));
   };
+
+  if (!allLoaded) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Loading trip…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
