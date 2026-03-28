@@ -6,7 +6,10 @@ import ChecklistTab from './components/checklist/ChecklistTab';
 import MealsTab from './components/meals/MealsTab';
 import PlacesTab from './components/places/PlacesTab';
 import NotesTab from './components/notes/NotesTab';
+import ChatTab from './components/chat/ChatTab';
+import OfflineBanner from './components/OfflineBanner';
 import { useSupabaseState } from './hooks/useSupabaseState';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import {
   initialItinerary,
   initialChecklist,
@@ -14,7 +17,15 @@ import {
   initialPlaces,
   initialLinks,
 } from './data/initialData';
-import type { ItineraryDay, ChecklistGroup, DayMeals, Place, SavedLink } from './types';
+import type {
+  ItineraryDay,
+  ItineraryEvent,
+  ChecklistGroup,
+  DayMeals,
+  Place,
+  SavedLink,
+  ChatMessage,
+} from './types';
 
 function genId() {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
@@ -22,6 +33,7 @@ function genId() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('itinerary');
+  const isOnline = useOnlineStatus();
 
   const [itinerary, itineraryLoaded, setItinerary] = useSupabaseState<ItineraryDay[]>('nw_itinerary', initialItinerary);
   const [checklist, checklistLoaded, setChecklist] = useSupabaseState<ChecklistGroup[]>('nw_checklist', initialChecklist);
@@ -29,8 +41,9 @@ export default function App() {
   const [places, placesLoaded, setPlaces] = useSupabaseState<Place[]>('nw_places', initialPlaces);
   const [notes, notesLoaded, setNotes] = useSupabaseState<string>('nw_notes', '');
   const [links, linksLoaded, setLinks] = useSupabaseState<SavedLink[]>('nw_links', initialLinks);
+  const [chatMessages, chatLoaded, setChatMessages] = useSupabaseState<ChatMessage[]>('nw_chat', []);
 
-  const allLoaded = itineraryLoaded && checklistLoaded && mealsLoaded && placesLoaded && notesLoaded && linksLoaded;
+  const allLoaded = itineraryLoaded && checklistLoaded && mealsLoaded && placesLoaded && notesLoaded && linksLoaded && chatLoaded;
 
   // Itinerary handlers
   const handleToggleEvent = (dayId: string, eventId: string) => {
@@ -42,6 +55,71 @@ export default function App() {
         ),
       }
     ));
+  };
+
+  const handleAddEvent = (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
+    setItinerary(prev => prev.map(day =>
+      day.id !== dayId ? day : {
+        ...day,
+        events: [...day.events, { ...data, id: genId(), done: false }],
+      }
+    ));
+  };
+
+  const handleEditEvent = (dayId: string, eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
+    setItinerary(prev => prev.map(day =>
+      day.id !== dayId ? day : {
+        ...day,
+        events: day.events.map(ev =>
+          ev.id !== eventId ? ev : { ...data, id: ev.id, done: ev.done }
+        ),
+      }
+    ));
+  };
+
+  const handleDeleteEvent = (dayId: string, eventId: string) => {
+    setItinerary(prev => prev.map(day =>
+      day.id !== dayId ? day : {
+        ...day,
+        events: day.events.filter(ev => ev.id !== eventId),
+      }
+    ));
+  };
+
+  const handleReorderEvents = (dayId: string, eventIds: string[]) => {
+    setItinerary(prev => prev.map(day => {
+      if (day.id !== dayId) return day;
+      const map = new Map(day.events.map(ev => [ev.id, ev]));
+      return { ...day, events: eventIds.map(id => map.get(id)!).filter(Boolean) };
+    }));
+  };
+
+  const handleAddDay = () => {
+    const dayNum = itinerary.length + 1;
+    setItinerary(prev => [
+      ...prev,
+      { id: genId(), date: '', dayLabel: `Day ${dayNum}`, events: [] },
+    ]);
+  };
+
+  const handleEditDayLabel = (dayId: string, label: string) => {
+    setItinerary(prev => prev.map(day =>
+      day.id !== dayId ? day : { ...day, dayLabel: label }
+    ));
+  };
+
+  const handleDeleteDay = (dayId: string) => {
+    setItinerary(prev => prev.filter(day => day.id !== dayId));
+  };
+
+  // AI handlers
+  const handleAIAddToItinerary = (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
+    const targetId = itinerary.find(d => d.id === dayId)?.id ?? itinerary[0]?.id;
+    if (targetId) handleAddEvent(targetId, data);
+  };
+
+  const handleAddPlace = (place: Omit<Place, 'id' | 'visited'>) => {
+    setPlaces(prev => [...prev, { ...place, id: genId(), visited: false }]);
   };
 
   // Checklist handlers
@@ -141,25 +219,37 @@ export default function App() {
 
   if (!allLoaded) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-3">
-        <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin" />
-        <p className="text-sm text-slate-400 font-medium">Loading trip…</p>
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center gap-3">
+        <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
+        <p className="text-sm text-stone-400 font-medium">Loading Ordo…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
+    <div className="min-h-screen bg-stone-50">
+      <header className="sticky top-0 z-30 bg-white border-b border-stone-200">
         <div className="max-w-2xl mx-auto px-4 py-3.5">
-          <h1 className="text-base font-bold text-slate-800 tracking-tight">North Wales Trip 🏔️</h1>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">29–31 March 2026</p>
+          <h1 className="text-base font-bold text-stone-800 tracking-tight">Ordo</h1>
+          <p className="text-xs text-stone-400 font-medium mt-0.5">North Wales · 29–31 March 2026</p>
         </div>
       </header>
 
+      <OfflineBanner isOnline={isOnline} />
+
       <main className="max-w-2xl mx-auto pb-24">
         {activeTab === 'itinerary' && (
-          <ItineraryTab days={itinerary} onToggleEvent={handleToggleEvent} />
+          <ItineraryTab
+            days={itinerary}
+            onToggleEvent={handleToggleEvent}
+            onAddEvent={handleAddEvent}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={handleDeleteEvent}
+            onReorderEvents={handleReorderEvents}
+            onAddDay={handleAddDay}
+            onEditDayLabel={handleEditDayLabel}
+            onDeleteDay={handleDeleteDay}
+          />
         )}
         {activeTab === 'checklist' && (
           <ChecklistTab
@@ -192,6 +282,16 @@ export default function App() {
             links={links}
             onAddLink={handleAddLink}
             onDeleteLink={handleDeleteLink}
+          />
+        )}
+        {activeTab === 'chat' && (
+          <ChatTab
+            messages={chatMessages}
+            onUpdateMessages={setChatMessages}
+            itinerary={itinerary}
+            places={places}
+            onAddToItinerary={handleAIAddToItinerary}
+            onAddToPlaces={handleAddPlace}
           />
         )}
       </main>

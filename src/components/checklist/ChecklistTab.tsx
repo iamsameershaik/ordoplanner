@@ -57,68 +57,68 @@ function GroupSection({ group, onToggleItem, onAddItem, onDeleteItem, onRenameGr
             onChange={e => setNameValue(e.target.value)}
             onBlur={handleNameSave}
             onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') { setNameValue(group.name); setEditingName(false); } }}
-            className="text-sm font-semibold text-slate-700 bg-transparent border-b border-slate-400 outline-none flex-1 py-0.5"
+            className="text-sm font-semibold text-stone-700 bg-transparent border-b border-stone-400 outline-none flex-1 py-0.5"
             autoFocus
           />
         ) : (
           <button
             onClick={() => { setEditingName(true); setTimeout(() => nameInputRef.current?.focus(), 0); }}
-            className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors text-left"
+            className="text-sm font-semibold text-stone-700 hover:text-stone-900 transition-colors text-left"
           >
             {group.name}
           </button>
         )}
         <div className="flex items-center gap-3 ml-2">
-          <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{checkedCount} / {group.items.length} packed</span>
+          <span className="text-xs text-stone-400 font-medium whitespace-nowrap">{checkedCount} / {group.items.length} packed</span>
           <button
             onClick={() => setShowDeleteGroup(true)}
-            className="text-slate-300 hover:text-red-400 transition-colors"
+            className="text-stone-300 hover:text-red-400 transition-colors"
           >
             <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <div className="border border-stone-200 rounded-xl overflow-hidden">
         {group.items.length === 0 && (
-          <div className="px-4 py-3 text-sm text-slate-400 italic">Nothing here yet — add something below</div>
+          <div className="px-4 py-3 text-sm text-stone-400 italic">Nothing here yet — add something below</div>
         )}
         {group.items.map((item, idx) => (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-4 py-3 ${idx < group.items.length - 1 ? 'border-b border-slate-100' : ''}`}
+            className={`flex items-center gap-3 px-4 py-3 ${idx < group.items.length - 1 ? 'border-b border-stone-100' : ''}`}
           >
             <button
               onClick={() => onToggleItem(item.id)}
               className={`w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                item.checked ? 'bg-slate-700 border-slate-700' : 'border-slate-300 bg-white hover:border-slate-500'
+                item.checked ? 'bg-stone-700 border-stone-700' : 'border-stone-300 bg-white hover:border-stone-500'
               }`}
             >
               {item.checked && <Check size={12} strokeWidth={3} className="text-white" />}
             </button>
-            <span className={`flex-1 text-sm ${item.checked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+            <span className={`flex-1 text-sm ${item.checked ? 'line-through text-stone-400' : 'text-stone-700'}`}>
               {item.label}
             </span>
             <button
               onClick={() => setDeleteItemId(item.id)}
-              className="text-slate-200 hover:text-red-400 transition-colors flex-shrink-0"
+              className="text-stone-200 hover:text-red-400 transition-colors flex-shrink-0"
             >
               <Trash2 size={14} />
             </button>
           </div>
         ))}
-        <div className="flex gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50">
+        <div className="flex gap-2 px-4 py-3 border-t border-stone-100 bg-stone-50">
           <input
             type="text"
             value={newItem}
             onChange={e => setNewItem(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddItem(); }}
             placeholder="Add item…"
-            className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
+            className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-400"
           />
           <button
             onClick={handleAddItem}
-            className="text-slate-500 hover:text-slate-700 transition-colors"
+            className="text-stone-500 hover:text-stone-700 transition-colors"
           >
             <Plus size={16} />
           </button>
@@ -164,21 +164,21 @@ export default function ChecklistTab({ groups, onToggleItem, onAddItem, onDelete
     <div className="px-4 py-4">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Overall progress</span>
+          <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Overall progress</span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">{totalChecked} / {totalItems}</span>
+            <span className="text-xs text-stone-500">{totalChecked} / {totalItems}</span>
             <button
               onClick={() => setShowReset(true)}
-              className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors"
+              className="text-xs text-stone-400 hover:text-stone-600 flex items-center gap-1 transition-colors"
             >
               <RotateCcw size={12} />
               Reset
             </button>
           </div>
         </div>
-        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-slate-600 rounded-full transition-all duration-300"
+            className="h-full bg-stone-600 rounded-full transition-all duration-300"
             style={{ width: `${globalProgress}%` }}
           />
         </div>
@@ -203,11 +203,11 @@ export default function ChecklistTab({ groups, onToggleItem, onAddItem, onDelete
           onChange={e => setNewGroupName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleAddGroup(); }}
           placeholder="New group name…"
-          className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-slate-400 text-slate-700 placeholder:text-slate-400"
+          className="flex-1 text-sm border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:border-stone-400 text-stone-700 placeholder:text-stone-400 bg-white"
         />
         <button
           onClick={handleAddGroup}
-          className="px-4 py-2.5 text-sm font-medium bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+          className="px-4 py-2.5 text-sm font-medium bg-stone-700 text-white rounded-xl hover:bg-stone-800 transition-colors flex items-center gap-1.5"
         >
           <Plus size={15} />
           New group

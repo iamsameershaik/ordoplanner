@@ -1,89 +1,374 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ChevronDown, ChevronRight, GripVertical, Pencil, Trash2, Plus, MapPin, ExternalLink, SquarePen as PenSquare } from 'lucide-react';
 import type { ItineraryDay, ItineraryEvent } from '../../types';
+import EventForm from './EventForm';
+import ConfirmModal from '../ConfirmModal';
 
-interface ItineraryTabProps {
-  days: ItineraryDay[];
-  onToggleEvent: (dayId: string, eventId: string) => void;
+const CATEGORY_COLORS: Record<string, string> = {
+  sightseeing: 'bg-sky-50 text-sky-600 border-sky-200',
+  travel: 'bg-stone-100 text-stone-500 border-stone-200',
+  dining: 'bg-orange-50 text-orange-600 border-orange-200',
+  accommodation: 'bg-teal-50 text-teal-600 border-teal-200',
+  activity: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  other: 'bg-stone-50 text-stone-400 border-stone-200',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  sightseeing: '🏛️ Sightseeing',
+  travel: '🚌 Travel',
+  dining: '🍽️ Dining',
+  accommodation: '🏨 Stay',
+  activity: '🥾 Activity',
+  other: '📌 Other',
+};
+
+function buildMapUrl(event: ItineraryEvent): string | null {
+  if (event.location?.lat && event.location?.lng) {
+    return `https://www.google.com/maps?q=${event.location.lat},${event.location.lng}`;
+  }
+  if (event.location?.address) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location.address)}`;
+  }
+  return null;
 }
 
-function EventCard({ event, onToggle }: { event: ItineraryEvent; onToggle: () => void }) {
+interface SortableEventCardProps {
+  event: ItineraryEvent;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SortableEventCard({ event, onToggle, onEdit, onDelete }: SortableEventCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: event.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  const displayTime = event.startTime || event.time;
+  const mapUrl = buildMapUrl(event);
+
   return (
-    <button
-      onClick={onToggle}
-      className="w-full text-left flex gap-3 group"
-    >
-      <div className="flex flex-col items-center mt-1">
-        <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors ${
-          event.done ? 'bg-slate-300 border-slate-300' : 'border-slate-400 bg-white group-hover:border-slate-600'
-        }`} />
-        <div className="w-px flex-1 bg-slate-100 mt-1" />
+    <div ref={setNodeRef} style={style} className="flex gap-2 group mb-1">
+      <button
+        {...attributes}
+        {...listeners}
+        className="flex-shrink-0 flex items-start pt-3 text-stone-300 hover:text-stone-400 transition-colors touch-none cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical size={16} />
+      </button>
+
+      <div className="flex flex-col items-center mt-3 mr-1">
+        <button
+          onClick={onToggle}
+          className={`w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors ${
+            event.done ? 'bg-stone-300 border-stone-300' : 'border-stone-400 bg-white hover:border-stone-600'
+          }`}
+        />
+        <div className="w-px flex-1 bg-stone-100 mt-1.5" />
       </div>
-      <div className={`flex-1 pb-5 transition-opacity ${event.done ? 'opacity-40' : ''}`}>
-        <div className="flex items-start gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-0.5 flex-shrink-0">{event.time}</span>
-          {event.ownExpense && (
-            <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 rounded px-1.5 py-0.5 flex-shrink-0">
-              own expense
+
+      <div className={`flex-1 pb-5 min-w-0 transition-opacity ${event.done ? 'opacity-40' : ''}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+            <span className="text-xs font-semibold text-stone-400 uppercase tracking-wide flex-shrink-0">
+              {displayTime}
+              {event.endTime && <span className="font-normal"> – {event.endTime}</span>}
             </span>
-          )}
+            {event.ownExpense && (
+              <span className="text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 rounded px-1.5 py-0.5 flex-shrink-0">
+                own expense
+              </span>
+            )}
+            {event.category && (
+              <span className={`text-[10px] font-medium border rounded px-1.5 py-0.5 flex-shrink-0 ${CATEGORY_COLORS[event.category] ?? 'bg-stone-50 text-stone-400 border-stone-200'}`}>
+                {CATEGORY_LABELS[event.category] ?? event.category}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={onEdit} className="p-1 text-stone-400 hover:text-stone-700 transition-colors" aria-label="Edit event">
+              <Pencil size={13} />
+            </button>
+            <button onClick={onDelete} className="p-1 text-stone-300 hover:text-red-400 transition-colors" aria-label="Delete event">
+              <Trash2 size={13} />
+            </button>
+          </div>
         </div>
-        <p className={`text-sm font-semibold text-slate-800 mt-0.5 ${event.done ? 'line-through' : ''}`}>
+
+        <p className={`text-sm font-semibold text-stone-800 mt-0.5 ${event.done ? 'line-through' : ''}`}>
           {event.title}
         </p>
-        <p className="text-sm text-slate-500 mt-1 leading-relaxed">{event.description}</p>
-      </div>
-    </button>
-  );
-}
-
-function DaySection({ day, onToggleEvent }: { day: ItineraryDay; onToggleEvent: (eventId: string) => void }) {
-  const [open, setOpen] = useState(true);
-  const doneCount = day.events.filter(e => e.done).length;
-  const total = day.events.length;
-  const progress = total > 0 ? (doneCount / total) * 100 : 0;
-
-  return (
-    <div className="mb-2">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between py-3 px-4 bg-white sticky top-[57px] z-10 border-b border-slate-100"
-      >
-        <div className="flex items-center gap-2">
-          {open ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
-          <span className="text-sm font-semibold text-slate-700">{day.dayLabel}</span>
-        </div>
-        <span className="text-xs text-slate-400 font-medium">{doneCount} / {total}</span>
-      </button>
-      {open && (
-        <div className="px-4 pt-3">
-          <div className="h-1 bg-slate-100 rounded-full mb-4 overflow-hidden">
-            <div
-              className="h-full bg-slate-400 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+        {event.description && (
+          <p className="text-sm text-stone-500 mt-1 leading-relaxed">{event.description}</p>
+        )}
+        {event.notes && (
+          <p className="text-xs text-stone-400 mt-1 leading-relaxed italic">{event.notes}</p>
+        )}
+        {(event.location?.address || mapUrl) && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <MapPin size={11} className="text-stone-400 flex-shrink-0" />
+            <span className="text-xs text-stone-400 flex-1 min-w-0 truncate">{event.location?.address}</span>
+            {mapUrl && (
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-xs font-medium text-stone-600 hover:text-stone-800 transition-colors flex-shrink-0"
+              >
+                <ExternalLink size={11} />
+                Map
+              </a>
+            )}
           </div>
-          {day.events.map((event, index) => (
-            <div key={event.id} className={index === day.events.length - 1 ? 'last-event' : ''}>
-              <EventCard event={event} onToggle={() => onToggleEvent(event.id)} />
-            </div>
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-export default function ItineraryTab({ days, onToggleEvent }: ItineraryTabProps) {
+interface DaySectionProps {
+  day: ItineraryDay;
+  onToggleEvent: (eventId: string) => void;
+  onAddEvent: (data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
+  onEditEvent: (eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
+  onDeleteEvent: (eventId: string) => void;
+  onReorderEvents: (eventIds: string[]) => void;
+  onEditDayLabel: (label: string) => void;
+  onDeleteDay: () => void;
+}
+
+function DaySection({
+  day,
+  onToggleEvent,
+  onAddEvent,
+  onEditEvent,
+  onDeleteEvent,
+  onReorderEvents,
+  onEditDayLabel,
+  onDeleteDay,
+}: DaySectionProps) {
+  const [open, setOpen] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ItineraryEvent | null>(null);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+  const [showDeleteDay, setShowDeleteDay] = useState(false);
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelValue, setLabelValue] = useState(day.dayLabel);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const doneCount = day.events.filter((e) => e.done).length;
+  const total = day.events.length;
+  const progress = total > 0 ? (doneCount / total) * 100 : 0;
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = day.events.findIndex((ev) => ev.id === active.id);
+    const newIndex = day.events.findIndex((ev) => ev.id === over.id);
+    const reordered = arrayMove(day.events, oldIndex, newIndex);
+    onReorderEvents(reordered.map((ev) => ev.id));
+  }
+
+  function handleLabelSave() {
+    const trimmed = labelValue.trim();
+    if (trimmed) onEditDayLabel(trimmed);
+    else setLabelValue(day.dayLabel);
+    setEditingLabel(false);
+  }
+
+  return (
+    <div className="mb-1">
+      <div className="flex items-center px-4 py-3 bg-stone-50 sticky top-[57px] z-10 border-b border-stone-100">
+        <button onClick={() => setOpen((o) => !o)} className="mr-2 text-stone-400">
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </button>
+
+        {editingLabel ? (
+          <input
+            value={labelValue}
+            onChange={(e) => setLabelValue(e.target.value)}
+            onBlur={handleLabelSave}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleLabelSave(); if (e.key === 'Escape') { setLabelValue(day.dayLabel); setEditingLabel(false); } }}
+            autoFocus
+            className="flex-1 text-sm font-semibold text-stone-700 bg-transparent border-b border-stone-400 outline-none py-0.5"
+          />
+        ) : (
+          <button
+            onClick={() => setEditingLabel(true)}
+            className="flex-1 text-left text-sm font-semibold text-stone-700 hover:text-stone-900 transition-colors flex items-center gap-1.5 group"
+          >
+            {day.dayLabel}
+            <PenSquare size={12} className="text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
+
+        <div className="flex items-center gap-3 ml-2 flex-shrink-0">
+          <span className="text-xs text-stone-400 font-medium">{doneCount} / {total}</span>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="text-stone-400 hover:text-stone-700 transition-colors"
+            aria-label="Add event"
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            onClick={() => setShowDeleteDay(true)}
+            className="text-stone-300 hover:text-red-400 transition-colors"
+            aria-label="Delete day"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="px-4 pt-3">
+          <div className="h-1 bg-stone-100 rounded-full mb-4 overflow-hidden">
+            <div
+              className="h-full bg-stone-400 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          {day.events.length === 0 && (
+            <p className="text-sm text-stone-400 italic py-2 pb-4">
+              No events — tap + to add the first one
+            </p>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={day.events.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+              {day.events.map((event) => (
+                <SortableEventCard
+                  key={event.id}
+                  event={event}
+                  onToggle={() => onToggleEvent(event.id)}
+                  onEdit={() => setEditingEvent(event)}
+                  onDelete={() => setDeleteEventId(event.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 text-xs font-medium text-stone-400 hover:text-stone-600 transition-colors py-2 mb-2"
+          >
+            <Plus size={14} />
+            Add event
+          </button>
+        </div>
+      )}
+
+      {showAddForm && (
+        <EventForm
+          onSave={(data) => { onAddEvent(data); setShowAddForm(false); }}
+          onClose={() => setShowAddForm(false)}
+        />
+      )}
+      {editingEvent && (
+        <EventForm
+          initial={editingEvent}
+          onSave={(data) => { onEditEvent(editingEvent.id, data); setEditingEvent(null); }}
+          onClose={() => setEditingEvent(null)}
+        />
+      )}
+      <ConfirmModal
+        isOpen={deleteEventId !== null}
+        title="Delete event"
+        message="Remove this event from the itinerary?"
+        confirmLabel="Delete"
+        onConfirm={() => { if (deleteEventId) { onDeleteEvent(deleteEventId); setDeleteEventId(null); } }}
+        onCancel={() => setDeleteEventId(null)}
+      />
+      <ConfirmModal
+        isOpen={showDeleteDay}
+        title="Delete day"
+        message={`Delete "${day.dayLabel}" and all its events?`}
+        confirmLabel="Delete"
+        onConfirm={() => { onDeleteDay(); setShowDeleteDay(false); }}
+        onCancel={() => setShowDeleteDay(false)}
+      />
+    </div>
+  );
+}
+
+interface ItineraryTabProps {
+  days: ItineraryDay[];
+  onToggleEvent: (dayId: string, eventId: string) => void;
+  onAddEvent: (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
+  onEditEvent: (dayId: string, eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
+  onDeleteEvent: (dayId: string, eventId: string) => void;
+  onReorderEvents: (dayId: string, eventIds: string[]) => void;
+  onAddDay: () => void;
+  onEditDayLabel: (dayId: string, label: string) => void;
+  onDeleteDay: (dayId: string) => void;
+}
+
+export default function ItineraryTab({
+  days,
+  onToggleEvent,
+  onAddEvent,
+  onEditEvent,
+  onDeleteEvent,
+  onReorderEvents,
+  onAddDay,
+  onEditDayLabel,
+  onDeleteDay,
+}: ItineraryTabProps) {
   return (
     <div>
-      {days.map(day => (
+      {days.map((day) => (
         <DaySection
           key={day.id}
           day={day}
           onToggleEvent={(eventId) => onToggleEvent(day.id, eventId)}
+          onAddEvent={(data) => onAddEvent(day.id, data)}
+          onEditEvent={(eventId, data) => onEditEvent(day.id, eventId, data)}
+          onDeleteEvent={(eventId) => onDeleteEvent(day.id, eventId)}
+          onReorderEvents={(ids) => onReorderEvents(day.id, ids)}
+          onEditDayLabel={(label) => onEditDayLabel(day.id, label)}
+          onDeleteDay={() => onDeleteDay(day.id)}
         />
       ))}
+      <div className="px-4 py-4">
+        <button
+          onClick={onAddDay}
+          className="flex items-center gap-2 text-sm font-medium text-stone-400 hover:text-stone-600 border border-dashed border-stone-300 hover:border-stone-400 rounded-xl px-4 py-3 w-full justify-center transition-colors"
+        >
+          <Plus size={15} />
+          Add day
+        </button>
+      </div>
     </div>
   );
 }
