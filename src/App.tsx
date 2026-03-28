@@ -9,8 +9,10 @@ import NotesTab from './components/notes/NotesTab';
 import ChatTab from './components/chat/ChatTab';
 const MapTab = lazy(() => import('./components/map/MapTab'));
 import OfflineBanner from './components/OfflineBanner';
+import RemoteUpdateToast from './components/RemoteUpdateToast';
 import { useSupabaseState } from './hooks/useSupabaseState';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { useRemoteUpdates } from './hooks/useRemoteUpdates';
 import {
   initialItinerary,
   initialChecklist,
@@ -35,6 +37,7 @@ function genId() {
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('itinerary');
   const isOnline = useOnlineStatus();
+  useRemoteUpdates();
 
   const [itinerary, itineraryLoaded, setItinerary] = useSupabaseState<ItineraryDay[]>('nw_itinerary', initialItinerary);
   const [checklist, checklistLoaded, setChecklist] = useSupabaseState<ChecklistGroup[]>('nw_checklist', initialChecklist);
@@ -237,6 +240,7 @@ export default function App() {
       </header>
 
       <OfflineBanner isOnline={isOnline} />
+      <RemoteUpdateToast />
 
       {activeTab === 'map' && (
         <Suspense fallback={<div className="flex items-center justify-center h-[calc(100vh-57px-64px)]"><div className="w-5 h-5 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" /></div>}>

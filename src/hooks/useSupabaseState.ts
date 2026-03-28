@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { broadcastOfflineFlush } from './useRemoteUpdates';
 
 const CACHE_PREFIX = 'ordo_cache_';
 const QUEUE_KEY = 'ordo_write_queue';
@@ -47,11 +48,20 @@ function dequeue(key: string): void {
   } catch {}
 }
 
+let broadcastTimer: ReturnType<typeof setTimeout> | null = null;
+
 async function flushQueueEntry(key: string, value: unknown): Promise<void> {
   const { error } = await supabase
     .from('trip_state')
     .upsert({ key, value }, { onConflict: 'key' });
-  if (!error) dequeue(key);
+  if (!error) {
+    dequeue(key);
+    if (broadcastTimer) clearTimeout(broadcastTimer);
+    broadcastTimer = setTimeout(() => {
+      broadcastOfflineFlush();
+      broadcastTimer = null;
+    }, 300);
+  }
 }
 
 export function useSupabaseState<T>(
