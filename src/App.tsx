@@ -6,7 +6,7 @@ import ChecklistTab from './components/checklist/ChecklistTab';
 import MealsTab from './components/meals/MealsTab';
 import PlacesTab from './components/places/PlacesTab';
 import NotesTab from './components/notes/NotesTab';
-import ChatTab from './components/chat/ChatTab';
+import ChatOverlay from './components/chat/ChatOverlay';
 const MapTab = lazy(() => import('./components/map/MapTab'));
 import OfflineBanner from './components/OfflineBanner';
 import RemoteUpdateToast from './components/RemoteUpdateToast';
@@ -49,7 +49,6 @@ export default function App() {
 
   const allLoaded = itineraryLoaded && checklistLoaded && mealsLoaded && placesLoaded && notesLoaded && linksLoaded && chatLoaded;
 
-  // Itinerary handlers
   const handleToggleEvent = (dayId: string, eventId: string) => {
     setItinerary(prev => prev.map(day =>
       day.id !== dayId ? day : {
@@ -116,7 +115,6 @@ export default function App() {
     setItinerary(prev => prev.filter(day => day.id !== dayId));
   };
 
-  // AI handlers
   const handleAIAddToItinerary = (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
     const targetId = itinerary.find(d => d.id === dayId)?.id ?? itinerary[0]?.id;
     if (targetId) handleAddEvent(targetId, data);
@@ -126,7 +124,6 @@ export default function App() {
     setPlaces(prev => [...prev, { ...place, id: genId(), visited: false }]);
   };
 
-  // Checklist handlers
   const handleToggleItem = (groupId: string, itemId: string) => {
     setChecklist(prev => prev.map(g =>
       g.id !== groupId ? g : {
@@ -173,7 +170,6 @@ export default function App() {
     })));
   };
 
-  // Meals handlers
   const handleUpdateMeal = (dayId: string, mealId: string, field: 'description' | 'notes' | 'type', value: string) => {
     setMeals(prev => prev.map(d =>
       d.id !== dayId ? d : {
@@ -207,12 +203,10 @@ export default function App() {
     ));
   };
 
-  // Places handlers
   const handleToggleVisited = (id: string) => {
     setPlaces(prev => prev.map(p => p.id !== id ? p : { ...p, visited: !p.visited }));
   };
 
-  // Links handlers
   const handleAddLink = (label: string, url: string) => {
     setLinks(prev => [...prev, { id: genId(), label, url }]);
   };
@@ -223,19 +217,22 @@ export default function App() {
 
   if (!allLoaded) {
     return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center gap-3">
-        <div className="w-6 h-6 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
-        <p className="text-sm text-stone-400 font-medium">Loading Ordo…</p>
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-8 h-8 border-2 border-stone-200 border-t-stone-700 rounded-full animate-spin" />
+        <p className="text-sm text-stone-400 font-medium tracking-wide">Loading Ordo</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <header className="sticky top-0 z-30 bg-white border-b border-stone-200">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
         <div className="max-w-2xl mx-auto px-4 py-3.5">
-          <h1 className="text-base font-bold text-stone-800 tracking-tight">Ordo</h1>
-          <p className="text-xs text-stone-400 font-medium mt-0.5">North Wales · 29–31 March 2026</p>
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-base font-bold text-stone-900 tracking-tight">Ordo</h1>
+            <span className="text-stone-300 text-xs">·</span>
+            <p className="text-xs text-stone-400 font-medium">North Wales · 29–31 March 2026</p>
+          </div>
         </div>
       </header>
 
@@ -243,7 +240,11 @@ export default function App() {
       <RemoteUpdateToast />
 
       {activeTab === 'map' && (
-        <Suspense fallback={<div className="flex items-center justify-center h-[calc(100vh-57px-64px)]"><div className="w-5 h-5 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" /></div>}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-[calc(100vh-57px-64px)]">
+            <div className="w-5 h-5 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
+          </div>
+        }>
           <MapTab
             itinerary={itinerary}
             places={places}
@@ -299,19 +300,18 @@ export default function App() {
             onDeleteLink={handleDeleteLink}
           />
         )}
-        {activeTab === 'chat' && (
-          <ChatTab
-            messages={chatMessages}
-            onUpdateMessages={setChatMessages}
-            itinerary={itinerary}
-            places={places}
-            onAddToItinerary={handleAIAddToItinerary}
-            onAddToPlaces={handleAddPlace}
-          />
-        )}
       </main>
 
       <TabBar active={activeTab} onChange={setActiveTab} />
+
+      <ChatOverlay
+        messages={chatMessages}
+        onUpdateMessages={setChatMessages}
+        itinerary={itinerary}
+        places={places}
+        onAddToItinerary={handleAIAddToItinerary}
+        onAddToPlaces={handleAddPlace}
+      />
     </div>
   );
 }
