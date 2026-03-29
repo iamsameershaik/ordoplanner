@@ -56,11 +56,11 @@ function renderMarkdown(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code class="bg-stone-100 text-stone-700 px-1 rounded text-xs font-mono">$1</code>')
-    .replace(/^### (.+)$/gm, '<p class="text-sm font-bold text-stone-800 mt-3 mb-1">$1</p>')
-    .replace(/^## (.+)$/gm, '<p class="text-base font-bold text-stone-800 mt-3 mb-1">$1</p>')
-    .replace(/^# (.+)$/gm, '<p class="text-base font-bold text-stone-800 mt-3 mb-1">$1</p>')
-    .replace(/^[-•] (.+)$/gm, '<li class="ml-4 list-disc text-stone-700">$1</li>')
+    .replace(/`(.+?)`/g, '<code class="bg-stone-100 dark:bg-slate-700 text-stone-700 dark:text-slate-200 px-1 rounded text-xs font-mono">$1</code>')
+    .replace(/^### (.+)$/gm, '<p class="text-sm font-bold text-stone-800 dark:text-slate-100 mt-3 mb-1">$1</p>')
+    .replace(/^## (.+)$/gm, '<p class="text-base font-bold text-stone-800 dark:text-slate-100 mt-3 mb-1">$1</p>')
+    .replace(/^# (.+)$/gm, '<p class="text-base font-bold text-stone-800 dark:text-slate-100 mt-3 mb-1">$1</p>')
+    .replace(/^[-•] (.+)$/gm, '<li class="ml-4 list-disc text-stone-700 dark:text-slate-300">$1</li>')
     .replace(/\n\n/g, '<br/><br/>')
     .replace(/\n/g, '<br/>');
 }
@@ -81,7 +81,7 @@ function ActionButtons({ actions, itinerary, onAddToItinerary, onAddToPlaces }: 
       {actions.map((action, idx) => {
         if (done.has(idx)) {
           return (
-            <div key={idx} className="flex items-center gap-2 text-xs text-stone-400 font-medium">
+            <div key={idx} className="flex items-center gap-2 text-xs text-stone-400 dark:text-slate-500 font-medium">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0" />
               Added successfully
             </div>
@@ -106,7 +106,7 @@ function ActionButtons({ actions, itinerary, onAddToItinerary, onAddToPlaces }: 
                 });
                 setDone((prev) => new Set(prev).add(idx));
               }}
-              className="flex items-center gap-2 text-xs font-semibold text-stone-700 bg-stone-100 active:bg-stone-200 border border-stone-200 rounded-xl px-3 py-2.5 transition-colors text-left"
+              className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-slate-200 bg-stone-100 dark:bg-slate-700 active:bg-stone-200 dark:active:bg-slate-600 border border-stone-200 dark:border-slate-600 rounded-xl px-3 py-2.5 transition-colors text-left"
             >
               <Plus size={13} />
               Add to Itinerary — {day?.dayLabel ?? 'Day 1'}
@@ -127,7 +127,7 @@ function ActionButtons({ actions, itinerary, onAddToItinerary, onAddToPlaces }: 
                 });
                 setDone((prev) => new Set(prev).add(idx));
               }}
-              className="flex items-center gap-2 text-xs font-semibold text-stone-700 bg-stone-100 active:bg-stone-200 border border-stone-200 rounded-xl px-3 py-2.5 transition-colors text-left"
+              className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-slate-200 bg-stone-100 dark:bg-slate-700 active:bg-stone-200 dark:active:bg-slate-600 border border-stone-200 dark:border-slate-600 rounded-xl px-3 py-2.5 transition-colors text-left"
             >
               <MapPin size={13} />
               Add to Places — {payload.name as string || 'New Place'}
@@ -242,34 +242,34 @@ export default function ChatOverlay({
       >
         <Sparkles size={22} strokeWidth={1.8} />
         {hasMessages && (
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-sky-500 rounded-full border-2 border-white" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-sky-500 rounded-full border-2 border-white dark:border-slate-900" />
         )}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-stone-50 chat-overlay-enter">
-          <header className="flex-shrink-0 bg-white border-b border-stone-200/80 sticky top-0 z-10">
+        <div className="fixed inset-0 z-[60] flex flex-col bg-stone-50 dark:bg-slate-900 chat-overlay-enter">
+          <header className="flex-shrink-0 bg-white dark:bg-slate-900/95 border-b border-stone-200/80 dark:border-slate-700/80 sticky top-0 z-10">
             <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center gap-3">
               <button
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all active:scale-95 -ml-1"
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-500 dark:text-slate-400 hover:text-stone-800 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800 transition-all active:scale-95 -ml-1"
                 aria-label="Back"
               >
                 <ArrowLeft size={18} strokeWidth={2} />
               </button>
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="w-7 h-7 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
-                  <Sparkles size={14} strokeWidth={1.8} className="text-white" />
+                <div className="w-7 h-7 rounded-xl bg-stone-900 dark:bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={14} strokeWidth={1.8} className="text-white dark:text-slate-900" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-stone-800 leading-tight">Ordo AI</h2>
-                  <p className="text-[10px] text-stone-400 leading-tight">North Wales trip assistant</p>
+                  <h2 className="text-sm font-semibold text-stone-800 dark:text-slate-100 leading-tight">Ordo AI</h2>
+                  <p className="text-[10px] text-stone-400 dark:text-slate-500 leading-tight">North Wales trip assistant</p>
                 </div>
               </div>
               {hasMessages && (
                 <button
                   onClick={() => { onUpdateMessages([]); setError(null); }}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-400 hover:text-red-400 hover:bg-red-50 transition-all active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
                   aria-label="Clear chat"
                 >
                   <Trash2 size={15} />
@@ -282,12 +282,12 @@ export default function ChatOverlay({
             <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
               {!hasMessages && (
                 <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 py-8">
-                  <div className="w-16 h-16 rounded-3xl bg-stone-900 flex items-center justify-center shadow-lg shadow-stone-900/20">
-                    <Sparkles size={28} strokeWidth={1.6} className="text-white" />
+                  <div className="w-16 h-16 rounded-3xl bg-stone-900 dark:bg-slate-100 flex items-center justify-center shadow-lg shadow-stone-900/20">
+                    <Sparkles size={28} strokeWidth={1.6} className="text-white dark:text-slate-900" />
                   </div>
                   <div className="text-center px-4">
-                    <p className="text-base font-semibold text-stone-800 mb-1.5">How can I help?</p>
-                    <p className="text-sm text-stone-400 max-w-xs leading-relaxed">
+                    <p className="text-base font-semibold text-stone-800 dark:text-slate-100 mb-1.5">How can I help?</p>
+                    <p className="text-sm text-stone-400 dark:text-slate-500 max-w-xs leading-relaxed">
                       Ask me anything about your North Wales trip — packing, restaurants, photo spots, or add events directly to your itinerary.
                     </p>
                   </div>
@@ -296,7 +296,7 @@ export default function ChatOverlay({
                       <button
                         key={s}
                         onClick={() => { setInput(s); inputRef.current?.focus(); }}
-                        className="text-left text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3 active:bg-stone-50 transition-colors leading-snug shadow-sm"
+                        className="text-left text-sm text-stone-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl px-4 py-3 active:bg-stone-50 dark:active:bg-slate-700 transition-colors leading-snug shadow-sm"
                       >
                         {s}
                       </button>
@@ -313,18 +313,18 @@ export default function ChatOverlay({
                 return (
                   <div key={msg.id} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className={`w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm ${
-                      isUser ? 'bg-stone-800' : 'bg-white border border-stone-200'
+                      isUser ? 'bg-stone-800' : 'bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700'
                     }`}>
                       {isUser
                         ? <User size={13} className="text-white" />
-                        : <Sparkles size={13} className="text-stone-500" />
+                        : <Sparkles size={13} className="text-stone-500 dark:text-slate-400" />
                       }
                     </div>
                     <div className={`max-w-[82%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
                       <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                         isUser
                           ? 'bg-stone-800 text-white rounded-tr-sm'
-                          : 'bg-white border border-stone-200 text-stone-700 rounded-tl-sm'
+                          : 'bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 text-stone-700 dark:text-slate-200 rounded-tl-sm'
                       }`}>
                         {isUser ? (
                           <p>{stripped}</p>
@@ -350,21 +350,21 @@ export default function ChatOverlay({
 
               {loading && (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-2xl bg-white border border-stone-200 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <Sparkles size={13} className="text-stone-400" />
+                  <div className="w-8 h-8 rounded-2xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Sparkles size={13} className="text-stone-400 dark:text-slate-500" />
                   </div>
-                  <div className="bg-white border border-stone-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                     <div className="flex gap-1 items-center h-5">
-                      <span className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 </div>
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-start gap-2">
                   <X size={14} className="flex-shrink-0 mt-0.5" />
                   {error}
                 </div>
@@ -374,7 +374,7 @@ export default function ChatOverlay({
             </div>
           </div>
 
-          <div className="flex-shrink-0 bg-white border-t border-stone-200/80 px-4 py-3 pb-safe">
+          <div className="flex-shrink-0 bg-white dark:bg-slate-900/95 border-t border-stone-200/80 dark:border-slate-700/80 px-4 py-3 pb-safe">
             <div className="max-w-2xl mx-auto">
               <div className="flex gap-2.5 items-end">
                 <textarea
@@ -384,7 +384,7 @@ export default function ChatOverlay({
                   onKeyDown={handleKeyDown}
                   placeholder="Ask about your trip…"
                   rows={1}
-                  className="flex-1 resize-none border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none focus:border-stone-400 bg-stone-50 leading-relaxed max-h-36 overflow-y-auto"
+                  className="flex-1 resize-none border border-stone-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-stone-800 dark:text-slate-100 placeholder:text-stone-400 dark:placeholder:text-slate-500 outline-none focus:border-stone-400 dark:focus:border-slate-500 bg-stone-50 dark:bg-slate-800 leading-relaxed max-h-36 overflow-y-auto"
                   style={{ minHeight: '46px' }}
                 />
                 <button

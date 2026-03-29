@@ -1,4 +1,6 @@
 import { useState, lazy, Suspense } from 'react';
+import { Moon, Sun } from 'lucide-react';
+import { useDarkMode } from './hooks/useDarkMode';
 import type { Tab } from './components/TabBar';
 import TabBar from './components/TabBar';
 import ItineraryTab from './components/itinerary/ItineraryTab';
@@ -36,6 +38,7 @@ function genId() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('itinerary');
+  const [dark, setDark] = useDarkMode();
   const isOnline = useOnlineStatus();
   useRemoteUpdates();
 
@@ -217,21 +220,30 @@ export default function App() {
 
   if (!allLoaded) {
     return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-8 h-8 border-2 border-stone-200 border-t-stone-700 rounded-full animate-spin" />
-        <p className="text-sm text-stone-400 font-medium tracking-wide">Loading Ordo</p>
+      <div className="min-h-screen bg-stone-50 dark:bg-slate-900 flex flex-col items-center justify-center gap-4">
+        <div className="w-8 h-8 border-2 border-stone-200 dark:border-slate-700 border-t-stone-700 dark:border-t-slate-300 rounded-full animate-spin" />
+        <p className="text-sm text-stone-400 dark:text-slate-400 font-medium tracking-wide">Loading Ordo</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
+    <div className="min-h-screen bg-stone-50 dark:bg-slate-900">
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-stone-200/80 dark:border-slate-700/80">
         <div className="max-w-2xl mx-auto px-4 py-3.5">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-base font-bold text-stone-900 tracking-tight">Ordo</h1>
-            <span className="text-stone-300 text-xs">·</span>
-            <p className="text-xs text-stone-400 font-medium">North Wales · 29–31 March 2026</p>
+          <div className="flex items-center gap-2">
+            <div className="flex items-baseline gap-2 flex-1">
+              <h1 className="text-base font-bold text-stone-900 dark:text-slate-100 tracking-tight">Ordo</h1>
+              <span className="text-stone-300 dark:text-slate-600 text-xs">·</span>
+              <p className="text-xs text-stone-400 dark:text-slate-400 font-medium">North Wales · 29–31 March 2026</p>
+            </div>
+            <button
+              onClick={() => setDark(d => !d)}
+              className="p-1.5 rounded-lg text-stone-400 dark:text-slate-400 hover:text-stone-700 dark:hover:text-slate-200 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
           </div>
         </div>
       </header>
@@ -241,8 +253,8 @@ export default function App() {
 
       {activeTab === 'map' && (
         <Suspense fallback={
-          <div className="flex items-center justify-center h-[calc(100vh-57px-64px)]">
-            <div className="w-5 h-5 border-2 border-stone-200 border-t-stone-600 rounded-full animate-spin" />
+          <div className="flex items-center justify-center h-[calc(100vh-57px-64px)] bg-stone-50 dark:bg-slate-900">
+            <div className="w-5 h-5 border-2 border-stone-200 dark:border-slate-700 border-t-stone-600 dark:border-t-slate-300 rounded-full animate-spin" />
           </div>
         }>
           <MapTab

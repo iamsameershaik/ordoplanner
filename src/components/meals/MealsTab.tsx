@@ -33,7 +33,7 @@ function EditableCell({ value, onSave, placeholder, className = '' }: { value: s
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setVal(value); setEditing(false); } }}
         autoFocus
         placeholder={placeholder}
-        className={`w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-sm outline-none focus:border-stone-500 ${className}`}
+        className={`w-full bg-stone-50 dark:bg-slate-700 border border-stone-300 dark:border-slate-600 rounded px-2 py-1 text-sm outline-none focus:border-stone-500 dark:focus:border-slate-400 text-stone-800 dark:text-slate-100 ${className}`}
       />
     );
   }
@@ -41,7 +41,7 @@ function EditableCell({ value, onSave, placeholder, className = '' }: { value: s
   return (
     <button
       onClick={() => setEditing(true)}
-      className={`w-full text-left text-sm px-2 py-1 rounded hover:bg-stone-50 transition-colors ${value ? 'text-stone-700' : 'text-stone-400 italic'} ${className}`}
+      className={`w-full text-left text-sm px-2 py-1 rounded hover:bg-stone-50 dark:hover:bg-slate-700 transition-colors ${value ? 'text-stone-700 dark:text-slate-200' : 'text-stone-400 dark:text-slate-500 italic'} ${className}`}
     >
       {value || placeholder || 'Tap to edit…'}
     </button>
@@ -51,13 +51,13 @@ function EditableCell({ value, onSave, placeholder, className = '' }: { value: s
 function MealRow({ meal, onUpdate, onDelete }: { meal: Meal; onUpdate: (field: 'description' | 'notes' | 'type', v: string) => void; onDelete: () => void }) {
   const [showDelete, setShowDelete] = useState(false);
   return (
-    <div className="flex gap-2 items-start py-3 border-b border-stone-100 last:border-0 group">
+    <div className="flex gap-2 items-start py-3 border-b border-stone-100 dark:border-slate-700 last:border-0 group">
       <div className="w-20 flex-shrink-0">
         <EditableCell
           value={meal.type}
           onSave={v => onUpdate('type', v)}
           placeholder="Type"
-          className="font-semibold text-stone-600 text-xs"
+          className="font-semibold text-stone-600 dark:text-slate-300 text-xs"
         />
       </div>
       <div className="flex-1 min-w-0">
@@ -70,12 +70,12 @@ function MealRow({ meal, onUpdate, onDelete }: { meal: Meal; onUpdate: (field: '
           value={meal.notes}
           onSave={v => onUpdate('notes', v)}
           placeholder="Notes / emoji…"
-          className="text-stone-400 text-xs mt-0.5"
+          className="text-stone-400 dark:text-slate-500 text-xs mt-0.5"
         />
       </div>
       <button
         onClick={() => setShowDelete(true)}
-        className="text-stone-200 hover:text-red-400 transition-colors flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100"
+        className="text-stone-200 dark:text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100"
       >
         <Trash2 size={14} />
       </button>
@@ -110,19 +110,19 @@ function DaySection({ day, onUpdateMeal, onAddMeal, onDeleteMeal, onClearDay }: 
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-stone-700">{day.dayLabel}</h3>
+        <h3 className="text-sm font-semibold text-stone-700 dark:text-slate-200">{day.dayLabel}</h3>
         <button
           onClick={() => setShowClear(true)}
-          className="text-xs text-stone-400 hover:text-red-400 transition-colors flex items-center gap-1"
+          className="text-xs text-stone-400 dark:text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1"
         >
           <X size={12} />
           Clear day
         </button>
       </div>
 
-      <div className="border border-stone-200 rounded-xl overflow-hidden bg-white px-4">
+      <div className="border border-stone-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800 px-4">
         {day.meals.length === 0 && (
-          <div className="py-4 text-sm text-stone-400 italic text-center">Nothing here yet — add something +</div>
+          <div className="py-4 text-sm text-stone-400 dark:text-slate-500 italic text-center">Nothing here yet — add something +</div>
         )}
         {day.meals.map(meal => (
           <MealRow
@@ -132,18 +132,18 @@ function DaySection({ day, onUpdateMeal, onAddMeal, onDeleteMeal, onClearDay }: 
             onDelete={() => onDeleteMeal(meal.id)}
           />
         ))}
-        <div className="flex gap-2 py-3 border-t border-stone-100">
+        <div className="flex gap-2 py-3 border-t border-stone-100 dark:border-slate-700">
           <input
             type="text"
             value={newType}
             onChange={e => setNewType(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
             placeholder="Meal type (e.g. Coffee stop)…"
-            className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-400"
+            className="flex-1 text-sm bg-transparent outline-none text-stone-700 dark:text-slate-200 placeholder:text-stone-400 dark:placeholder:text-slate-500"
           />
           <button
             onClick={handleAdd}
-            className="text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1 text-xs font-medium"
+            className="text-stone-500 dark:text-slate-400 hover:text-stone-700 dark:hover:text-slate-200 transition-colors flex items-center gap-1 text-xs font-medium"
           >
             <Plus size={15} />
             Add

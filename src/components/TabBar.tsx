@@ -18,7 +18,7 @@ const tabs: { id: Tab; label: string; Icon: LucideIcon }[] = [
 
 export default function TabBar({ active, onChange }: TabBarProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/80">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-stone-200/80 dark:border-slate-700/80">
       <div className="max-w-2xl mx-auto flex">
         {tabs.map(({ id, label, Icon }) => {
           const isActive = active === id;
@@ -27,18 +27,18 @@ export default function TabBar({ active, onChange }: TabBarProps) {
               key={id}
               onClick={() => onChange(id)}
               className={`flex-1 flex flex-col items-center justify-center pt-2.5 pb-3.5 gap-1 relative transition-all duration-150 active:scale-95 ${
-                isActive ? 'text-stone-800' : 'text-stone-400'
+                isActive ? 'text-stone-800 dark:text-slate-100' : 'text-stone-400 dark:text-slate-500'
               }`}
             >
               {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-stone-800 rounded-full" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-stone-800 dark:bg-slate-100 rounded-full" />
               )}
               <Icon
                 size={19}
                 strokeWidth={isActive ? 2.2 : 1.6}
               />
               <span className={`text-[9.5px] font-medium tracking-wide leading-none ${
-                isActive ? 'text-stone-800' : 'text-stone-400'
+                isActive ? 'text-stone-800 dark:text-slate-100' : 'text-stone-400 dark:text-slate-500'
               }`}>
                 {label}
               </span>

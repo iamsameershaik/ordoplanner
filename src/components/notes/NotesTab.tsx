@@ -55,10 +55,10 @@ export default function NotesTab({ notes, onNotesChange, links, onAddLink, onDel
     <div className="px-4 py-4">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-stone-700">Notes</h3>
+          <h3 className="text-sm font-semibold text-stone-700 dark:text-slate-200">Notes</h3>
           <button
             onClick={() => setShowClear(true)}
-            className="text-xs text-stone-400 hover:text-red-400 transition-colors"
+            className="text-xs text-stone-400 dark:text-slate-500 hover:text-red-400 transition-colors"
           >
             Clear notes
           </button>
@@ -68,26 +68,26 @@ export default function NotesTab({ notes, onNotesChange, links, onAddLink, onDel
           onChange={e => handleNotesChange(e.target.value)}
           placeholder="Jot down anything — plans, ideas, reminders…"
           rows={10}
-          className="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-700 placeholder:text-stone-400 outline-none focus:border-stone-400 resize-none leading-relaxed bg-white"
+          className="w-full border border-stone-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-stone-700 dark:text-slate-200 placeholder:text-stone-400 dark:placeholder:text-slate-500 outline-none focus:border-stone-400 dark:focus:border-slate-500 resize-none leading-relaxed bg-white dark:bg-slate-800"
         />
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-stone-400">{savedText}</span>
-          <span className="text-xs text-stone-300">{notes.length} chars</span>
+          <span className="text-xs text-stone-400 dark:text-slate-500">{savedText}</span>
+          <span className="text-xs text-stone-300 dark:text-slate-600">{notes.length} chars</span>
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-stone-700 mb-3">Links</h3>
+        <h3 className="text-sm font-semibold text-stone-700 dark:text-slate-200 mb-3">Links</h3>
 
         {links.length === 0 && (
-          <p className="text-sm text-stone-400 italic mb-4">Nothing here yet — add something +</p>
+          <p className="text-sm text-stone-400 dark:text-slate-500 italic mb-4">Nothing here yet — add something +</p>
         )}
 
         <div className="flex flex-col gap-2 mb-4">
           {links.map(link => (
             <div
               key={link.id}
-              className="flex items-center gap-3 border border-stone-200 rounded-xl px-4 py-3 bg-white group"
+              className="flex items-center gap-3 border border-stone-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-slate-800 group"
             >
               <a
                 href={link.url}
@@ -95,14 +95,14 @@ export default function NotesTab({ notes, onNotesChange, links, onAddLink, onDel
                 rel="noopener noreferrer"
                 className="flex-1 min-w-0 flex items-center gap-2"
               >
-                <ExternalLink size={14} className="text-stone-400 flex-shrink-0" />
-                <span className="text-sm font-medium text-stone-700 hover:text-stone-900 truncate transition-colors">
+                <ExternalLink size={14} className="text-stone-400 dark:text-slate-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-stone-700 dark:text-slate-200 hover:text-stone-900 dark:hover:text-slate-50 truncate transition-colors">
                   {link.label}
                 </span>
               </a>
               <button
                 onClick={() => setDeleteLinkId(link.id)}
-                className="text-stone-200 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                className="text-stone-200 dark:text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
               >
                 <Trash2 size={14} />
               </button>
@@ -110,13 +110,13 @@ export default function NotesTab({ notes, onNotesChange, links, onAddLink, onDel
           ))}
         </div>
 
-        <div className="border border-stone-200 rounded-xl overflow-hidden bg-white">
+        <div className="border border-stone-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800">
           <input
             type="text"
             value={newLabel}
             onChange={e => setNewLabel(e.target.value)}
             placeholder="Label (e.g. Conwy Castle tickets)"
-            className="w-full px-4 py-3 text-sm outline-none border-b border-stone-100 text-stone-700 placeholder:text-stone-400"
+            className="w-full px-4 py-3 text-sm outline-none border-b border-stone-100 dark:border-slate-700 text-stone-700 dark:text-slate-200 placeholder:text-stone-400 dark:placeholder:text-slate-500 bg-transparent"
           />
           <input
             type="url"
@@ -124,12 +124,12 @@ export default function NotesTab({ notes, onNotesChange, links, onAddLink, onDel
             onChange={e => setNewUrl(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddLink(); }}
             placeholder="URL (https://…)"
-            className="w-full px-4 py-3 text-sm outline-none text-stone-700 placeholder:text-stone-400"
+            className="w-full px-4 py-3 text-sm outline-none text-stone-700 dark:text-slate-200 placeholder:text-stone-400 dark:placeholder:text-slate-500 bg-transparent"
           />
-          <div className="px-4 py-2.5 bg-stone-50 border-t border-stone-100">
+          <div className="px-4 py-2.5 bg-stone-50 dark:bg-slate-800/50 border-t border-stone-100 dark:border-slate-700">
             <button
               onClick={handleAddLink}
-              className="flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-800 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium text-stone-600 dark:text-slate-300 hover:text-stone-800 dark:hover:text-slate-100 transition-colors"
             >
               <Plus size={15} />
               Add link
