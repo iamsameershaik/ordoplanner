@@ -94,11 +94,10 @@ export default function HotspotSearch({ onResults, onAddToPlaces, results }: Hot
   async function fetchHotspots(lat: number, lng: number) {
     try {
       const overpassQuery = buildOverpassQuery(lat, lng);
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: `data=${encodeURIComponent(overpassQuery)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      });
+      const res = await fetch(
+        `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`,
+        { method: 'GET' }
+      );
       const data = await res.json();
       const items: HotspotResult[] = (data.elements ?? [])
         .filter((el: { tags?: Record<string, string>; lat?: number; lon?: number; center?: { lat: number; lon: number } }) => {

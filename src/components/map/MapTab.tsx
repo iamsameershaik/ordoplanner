@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ChevronDown, ExternalLink } from 'lucide-react';
-import type { ItineraryDay, Place, TripPinType } from '../../types';
+import type { ItineraryDay, Place } from '../../types';
 import { useMapPins } from '../../hooks/useMapPins';
 import { icons } from './mapIcons';
 import MapPopup from './MapPopup';
@@ -19,6 +19,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const NORTH_WALES_CENTER: [number, number] = [53.12, -3.79];
+const NORTH_WALES_ZOOM = 10;
+const HOTEL_ZOOM = 15;
 
 interface MapTabProps {
   itinerary: ItineraryDay[];
@@ -33,6 +35,18 @@ function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression | null }) {
       try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 }); } catch {}
     }
   }, [bounds, map]);
+  return null;
+}
+
+function SetView({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  const didSet = useRef(false);
+  useEffect(() => {
+    if (!didSet.current) {
+      map.setView(center, zoom);
+      didSet.current = true;
+    }
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -51,6 +65,15 @@ export default function MapTab({ itinerary, places, onAddPlace }: MapTabProps) {
   const [hotspotResults, setHotspotResults] = useState<HotspotResult[]>([]);
   const [showControls, setShowControls] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
+
+  const hotelPin = pins.find(p => p.type === 'hotel');
+  const hotelLat = hotelPin?.lat;
+  const hotelLng = hotelPin?.lng;
+
+  const initialCenter: [number, number] = hotelLat !== undefined && hotelLng !== undefined
+    ? [hotelLat, hotelLng]
+    : NORTH_WALES_CENTER;
+  const initialZoom = hotelLat !== undefined ? HOTEL_ZOOM : NORTH_WALES_ZOOM;
 
   const allItineraryEvents = itinerary.flatMap(d =>
     d.events
@@ -108,11 +131,13 @@ export default function MapTab({ itinerary, places, onAddPlace }: MapTabProps) {
       <div className="flex-1 relative">
         <MapContainer
           center={NORTH_WALES_CENTER}
-          zoom={10}
+          zoom={NORTH_WALES_ZOOM}
           className="w-full h-full"
           ref={mapRef}
           zoomControl={true}
         >
+          <SetView center={initialCenter} zoom={initialZoom} />
+
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -139,6 +164,8 @@ export default function MapTab({ itinerary, places, onAddPlace }: MapTabProps) {
                 subtitle={`${ev.startTime ?? ev.time} · ${ev.dayLabel}`}
                 lat={ev.lat}
                 lng={ev.lng}
+                hotelLat={hotelLat}
+                hotelLng={hotelLng}
               />
             </Marker>
           ))}
@@ -154,6 +181,8 @@ export default function MapTab({ itinerary, places, onAddPlace }: MapTabProps) {
                 subtitle={place.description}
                 lat={place.lat}
                 lng={place.lng}
+                hotelLat={hotelLat}
+                hotelLng={hotelLng}
               />
             </Marker>
           ))}
@@ -184,6 +213,8 @@ export default function MapTab({ itinerary, places, onAddPlace }: MapTabProps) {
                 subtitle={result.category}
                 lat={result.lat}
                 lng={result.lng}
+                hotelLat={hotelLat}
+                hotelLng={hotelLng}
                 onAddToPlaces={() => handleAddToPlaces(result)}
               />
             </Marker>

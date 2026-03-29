@@ -6,14 +6,22 @@ interface MapPopupProps {
   subtitle?: string;
   lat: number;
   lng: number;
+  hotelLat?: number;
+  hotelLng?: number;
   onAddToPlaces?: () => void;
 }
 
-function gmapsDirections(lat: number, lng: number) {
-  return `https://www.google.com/maps/dir/?api=1&origin=current&destination=${lat},${lng}`;
+function gmapsLink(lat: number, lng: number, hotelLat?: number, hotelLng?: number) {
+  if (hotelLat !== undefined && hotelLng !== undefined) {
+    return `https://www.google.com/maps/dir/?api=1&origin=${hotelLat},${hotelLng}&destination=${lat},${lng}&travelmode=walking`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
-export default function MapPopup({ title, subtitle, lat, lng, onAddToPlaces }: MapPopupProps) {
+export default function MapPopup({ title, subtitle, lat, lng, hotelLat, hotelLng, onAddToPlaces }: MapPopupProps) {
+  const url = gmapsLink(lat, lng, hotelLat, hotelLng);
+  const linkLabel = hotelLat !== undefined ? 'Walking directions from hotel' : 'Open in Google Maps';
+
   return (
     <Popup>
       <div className="min-w-[160px]">
@@ -21,13 +29,13 @@ export default function MapPopup({ title, subtitle, lat, lng, onAddToPlaces }: M
         {subtitle && <p className="text-xs text-stone-500 mt-0.5 leading-snug">{subtitle}</p>}
         <div className="flex flex-col gap-1 mt-2">
           <a
-            href={gmapsDirections(lat, lng)}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-800"
           >
             <ExternalLink size={11} />
-            Open in Google Maps
+            {linkLabel}
           </a>
           {onAddToPlaces && (
             <button
