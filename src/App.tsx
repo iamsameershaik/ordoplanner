@@ -12,6 +12,7 @@ import ChatOverlay from './components/chat/ChatOverlay';
 const MapTab = lazy(() => import('./components/map/MapTab'));
 import OfflineBanner from './components/OfflineBanner';
 import RemoteUpdateToast from './components/RemoteUpdateToast';
+import TripLockedModal from './components/TripLockedModal';
 import { useSupabaseState } from './hooks/useSupabaseState';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { useRemoteUpdates } from './hooks/useRemoteUpdates';
@@ -24,7 +25,6 @@ import {
 } from './data/initialData';
 import type {
   ItineraryDay,
-  ItineraryEvent,
   ChecklistGroup,
   DayMeals,
   Place,
@@ -32,191 +32,49 @@ import type {
   ChatMessage,
 } from './types';
 
-function genId() {
-  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('itinerary');
   const [dark, setDark] = useDarkMode();
   const isOnline = useOnlineStatus();
   useRemoteUpdates();
+  const [lockedModalOpen, setLockedModalOpen] = useState(false);
 
-  const [itinerary, itineraryLoaded, setItinerary] = useSupabaseState<ItineraryDay[]>('nw_itinerary', initialItinerary);
-  const [checklist, checklistLoaded, setChecklist] = useSupabaseState<ChecklistGroup[]>('nw_checklist', initialChecklist);
-  const [meals, mealsLoaded, setMeals] = useSupabaseState<DayMeals[]>('nw_meals', initialMeals);
-  const [places, placesLoaded, setPlaces] = useSupabaseState<Place[]>('nw_places', initialPlaces);
-  const [notes, notesLoaded, setNotes] = useSupabaseState<string>('nw_notes', '');
-  const [links, linksLoaded, setLinks] = useSupabaseState<SavedLink[]>('nw_links', initialLinks);
-  const [chatMessages, chatLoaded, setChatMessages] = useSupabaseState<ChatMessage[]>('nw_chat', []);
+  const [itinerary, itineraryLoaded] = useSupabaseState<ItineraryDay[]>('nw_itinerary', initialItinerary);
+  const [checklist, checklistLoaded] = useSupabaseState<ChecklistGroup[]>('nw_checklist', initialChecklist);
+  const [meals, mealsLoaded] = useSupabaseState<DayMeals[]>('nw_meals', initialMeals);
+  const [places, placesLoaded] = useSupabaseState<Place[]>('nw_places', initialPlaces);
+  const [notes, notesLoaded] = useSupabaseState<string>('nw_notes', '');
+  const [links, linksLoaded] = useSupabaseState<SavedLink[]>('nw_links', initialLinks);
+  const [chatMessages, chatLoaded] = useSupabaseState<ChatMessage[]>('nw_chat', []);
 
   const allLoaded = itineraryLoaded && checklistLoaded && mealsLoaded && placesLoaded && notesLoaded && linksLoaded && chatLoaded;
 
-  const handleToggleEvent = (dayId: string, eventId: string) => {
-    setItinerary(prev => prev.map(day =>
-      day.id !== dayId ? day : {
-        ...day,
-        events: day.events.map(ev =>
-          ev.id !== eventId ? ev : { ...ev, done: !ev.done }
-        ),
-      }
-    ));
-  };
+  const showLocked = () => setLockedModalOpen(true);
 
-  const handleAddEvent = (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
-    setItinerary(prev => prev.map(day =>
-      day.id !== dayId ? day : {
-        ...day,
-        events: [...day.events, { ...data, id: genId(), done: false }],
-      }
-    ));
-  };
-
-  const handleEditEvent = (dayId: string, eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
-    setItinerary(prev => prev.map(day =>
-      day.id !== dayId ? day : {
-        ...day,
-        events: day.events.map(ev =>
-          ev.id !== eventId ? ev : { ...data, id: ev.id, done: ev.done }
-        ),
-      }
-    ));
-  };
-
-  const handleDeleteEvent = (dayId: string, eventId: string) => {
-    setItinerary(prev => prev.map(day =>
-      day.id !== dayId ? day : {
-        ...day,
-        events: day.events.filter(ev => ev.id !== eventId),
-      }
-    ));
-  };
-
-  const handleReorderEvents = (dayId: string, eventIds: string[]) => {
-    setItinerary(prev => prev.map(day => {
-      if (day.id !== dayId) return day;
-      const map = new Map(day.events.map(ev => [ev.id, ev]));
-      return { ...day, events: eventIds.map(id => map.get(id)!).filter(Boolean) };
-    }));
-  };
-
-  const handleAddDay = () => {
-    const dayNum = itinerary.length + 1;
-    setItinerary(prev => [
-      ...prev,
-      { id: genId(), date: '', dayLabel: `Day ${dayNum}`, events: [] },
-    ]);
-  };
-
-  const handleEditDayLabel = (dayId: string, label: string) => {
-    setItinerary(prev => prev.map(day =>
-      day.id !== dayId ? day : { ...day, dayLabel: label }
-    ));
-  };
-
-  const handleDeleteDay = (dayId: string) => {
-    setItinerary(prev => prev.filter(day => day.id !== dayId));
-  };
-
-  const handleAIAddToItinerary = (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => {
-    const targetId = itinerary.find(d => d.id === dayId)?.id ?? itinerary[0]?.id;
-    if (targetId) handleAddEvent(targetId, data);
-  };
-
-  const handleAddPlace = (place: Omit<Place, 'id' | 'visited'>) => {
-    setPlaces(prev => [...prev, { ...place, id: genId(), visited: false }]);
-  };
-
-  const handleToggleItem = (groupId: string, itemId: string) => {
-    setChecklist(prev => prev.map(g =>
-      g.id !== groupId ? g : {
-        ...g,
-        items: g.items.map(i => i.id !== itemId ? i : { ...i, checked: !i.checked }),
-      }
-    ));
-  };
-
-  const handleAddItem = (groupId: string, label: string) => {
-    setChecklist(prev => prev.map(g =>
-      g.id !== groupId ? g : {
-        ...g,
-        items: [...g.items, { id: genId(), label, checked: false }],
-      }
-    ));
-  };
-
-  const handleDeleteItem = (groupId: string, itemId: string) => {
-    setChecklist(prev => prev.map(g =>
-      g.id !== groupId ? g : {
-        ...g,
-        items: g.items.filter(i => i.id !== itemId),
-      }
-    ));
-  };
-
-  const handleAddGroup = (name: string) => {
-    setChecklist(prev => [...prev, { id: genId(), name, items: [] }]);
-  };
-
-  const handleRenameGroup = (groupId: string, name: string) => {
-    setChecklist(prev => prev.map(g => g.id !== groupId ? g : { ...g, name }));
-  };
-
-  const handleDeleteGroup = (groupId: string) => {
-    setChecklist(prev => prev.filter(g => g.id !== groupId));
-  };
-
-  const handleResetAll = () => {
-    setChecklist(prev => prev.map(g => ({
-      ...g,
-      items: g.items.map(i => ({ ...i, checked: false })),
-    })));
-  };
-
-  const handleUpdateMeal = (dayId: string, mealId: string, field: 'description' | 'notes' | 'type', value: string) => {
-    setMeals(prev => prev.map(d =>
-      d.id !== dayId ? d : {
-        ...d,
-        meals: d.meals.map(m => m.id !== mealId ? m : { ...m, [field]: value }),
-      }
-    ));
-  };
-
-  const handleAddMeal = (dayId: string, type: string) => {
-    setMeals(prev => prev.map(d =>
-      d.id !== dayId ? d : {
-        ...d,
-        meals: [...d.meals, { id: genId(), type, description: '', notes: '' }],
-      }
-    ));
-  };
-
-  const handleDeleteMeal = (dayId: string, mealId: string) => {
-    setMeals(prev => prev.map(d =>
-      d.id !== dayId ? d : {
-        ...d,
-        meals: d.meals.filter(m => m.id !== mealId),
-      }
-    ));
-  };
-
-  const handleClearDay = (dayId: string) => {
-    setMeals(prev => prev.map(d =>
-      d.id !== dayId ? d : { ...d, meals: [] }
-    ));
-  };
-
-  const handleToggleVisited = (id: string) => {
-    setPlaces(prev => prev.map(p => p.id !== id ? p : { ...p, visited: !p.visited }));
-  };
-
-  const handleAddLink = (label: string, url: string) => {
-    setLinks(prev => [...prev, { id: genId(), label, url }]);
-  };
-
-  const handleDeleteLink = (id: string) => {
-    setLinks(prev => prev.filter(l => l.id !== id));
-  };
+  const handleToggleEvent = showLocked;
+  const handleAddEvent = showLocked;
+  const handleEditEvent = showLocked;
+  const handleDeleteEvent = showLocked;
+  const handleReorderEvents = showLocked;
+  const handleAddDay = showLocked;
+  const handleEditDayLabel = showLocked;
+  const handleDeleteDay = showLocked;
+  const handleAIAddToItinerary = showLocked;
+  const handleAddPlace = showLocked;
+  const handleToggleItem = showLocked;
+  const handleAddItem = showLocked;
+  const handleDeleteItem = showLocked;
+  const handleAddGroup = showLocked;
+  const handleRenameGroup = showLocked;
+  const handleDeleteGroup = showLocked;
+  const handleResetAll = showLocked;
+  const handleUpdateMeal = showLocked;
+  const handleAddMeal = showLocked;
+  const handleDeleteMeal = showLocked;
+  const handleClearDay = showLocked;
+  const handleToggleVisited = showLocked;
+  const handleAddLink = showLocked;
+  const handleDeleteLink = showLocked;
 
   if (!allLoaded) {
     return (
@@ -306,7 +164,7 @@ export default function App() {
         {activeTab === 'notes' && (
           <NotesTab
             notes={notes}
-            onNotesChange={setNotes}
+            onNotesChange={showLocked}
             links={links}
             onAddLink={handleAddLink}
             onDeleteLink={handleDeleteLink}
@@ -318,12 +176,14 @@ export default function App() {
 
       <ChatOverlay
         messages={chatMessages}
-        onUpdateMessages={setChatMessages}
+        onUpdateMessages={showLocked}
         itinerary={itinerary}
         places={places}
         onAddToItinerary={handleAIAddToItinerary}
         onAddToPlaces={handleAddPlace}
       />
+
+      <TripLockedModal isOpen={lockedModalOpen} onClose={() => setLockedModalOpen(false)} />
     </div>
   );
 }

@@ -9,17 +9,15 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronRight, GripVertical, Pencil, Trash2, Plus, MapPin, ExternalLink, SquarePen as PenSquare } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Pencil, Trash2, Plus, MapPin, ExternalLink } from 'lucide-react';
+import TripLockedModal from '../TripLockedModal';
 import type { ItineraryDay, ItineraryEvent } from '../../types';
-import EventForm from './EventForm';
-import ConfirmModal from '../ConfirmModal';
 
 const CATEGORY_COLORS: Record<string, string> = {
   sightseeing: 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800',
@@ -153,32 +151,13 @@ function SortableEventCard({ event, onToggle, onEdit, onDelete }: SortableEventC
 
 interface DaySectionProps {
   day: ItineraryDay;
-  onToggleEvent: (eventId: string) => void;
-  onAddEvent: (data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
-  onEditEvent: (eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
-  onDeleteEvent: (eventId: string) => void;
-  onReorderEvents: (eventIds: string[]) => void;
-  onEditDayLabel: (label: string) => void;
-  onDeleteDay: () => void;
+  onAddDay: () => void;
 }
 
-function DaySection({
-  day,
-  onToggleEvent,
-  onAddEvent,
-  onEditEvent,
-  onDeleteEvent,
-  onReorderEvents,
-  onEditDayLabel,
-  onDeleteDay,
-}: DaySectionProps) {
+function DaySection({ day, onAddDay: _onAddDay }: DaySectionProps) {
   const [open, setOpen] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<ItineraryEvent | null>(null);
-  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
-  const [showDeleteDay, setShowDeleteDay] = useState(false);
-  const [editingLabel, setEditingLabel] = useState(false);
-  const [labelValue, setLabelValue] = useState(day.dayLabel);
+  const [lockedOpen, setLockedOpen] = useState(false);
+  const showLocked = () => setLockedOpen(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -190,19 +169,7 @@ function DaySection({
   const progress = total > 0 ? (doneCount / total) * 100 : 0;
 
   function handleDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldIndex = day.events.findIndex((ev) => ev.id === active.id);
-    const newIndex = day.events.findIndex((ev) => ev.id === over.id);
-    const reordered = arrayMove(day.events, oldIndex, newIndex);
-    onReorderEvents(reordered.map((ev) => ev.id));
-  }
-
-  function handleLabelSave() {
-    const trimmed = labelValue.trim();
-    if (trimmed) onEditDayLabel(trimmed);
-    else setLabelValue(day.dayLabel);
-    setEditingLabel(false);
+    if (e.active.id !== e.over?.id) showLocked();
   }
 
   return (
@@ -212,36 +179,23 @@ function DaySection({
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
 
-        {editingLabel ? (
-          <input
-            value={labelValue}
-            onChange={(e) => setLabelValue(e.target.value)}
-            onBlur={handleLabelSave}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleLabelSave(); if (e.key === 'Escape') { setLabelValue(day.dayLabel); setEditingLabel(false); } }}
-            autoFocus
-            className="flex-1 text-sm font-semibold text-stone-700 dark:text-slate-200 bg-transparent border-b border-stone-400 dark:border-slate-500 outline-none py-0.5"
-          />
-        ) : (
-          <button
-            onClick={() => setEditingLabel(true)}
-            className="flex-1 text-left text-sm font-semibold text-stone-700 dark:text-slate-200 hover:text-stone-900 dark:hover:text-slate-50 transition-colors flex items-center gap-1.5 group"
-          >
-            {day.dayLabel}
-            <PenSquare size={12} className="text-stone-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        )}
+        <button
+          className="flex-1 text-left text-sm font-semibold text-stone-700 dark:text-slate-200 flex items-center gap-1.5"
+        >
+          {day.dayLabel}
+        </button>
 
         <div className="flex items-center gap-3 ml-2 flex-shrink-0">
           <span className="text-xs text-stone-400 dark:text-slate-500 font-medium">{doneCount} / {total}</span>
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={showLocked}
             className="text-stone-400 dark:text-slate-500 hover:text-stone-700 dark:hover:text-slate-200 transition-colors"
             aria-label="Add event"
           >
             <Plus size={16} />
           </button>
           <button
-            onClick={() => setShowDeleteDay(true)}
+            onClick={showLocked}
             className="text-stone-300 dark:text-slate-600 hover:text-red-400 transition-colors"
             aria-label="Delete day"
           >
@@ -271,16 +225,16 @@ function DaySection({
                 <SortableEventCard
                   key={event.id}
                   event={event}
-                  onToggle={() => onToggleEvent(event.id)}
-                  onEdit={() => setEditingEvent(event)}
-                  onDelete={() => setDeleteEventId(event.id)}
+                  onToggle={showLocked}
+                  onEdit={showLocked}
+                  onDelete={showLocked}
                 />
               ))}
             </SortableContext>
           </DndContext>
 
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={showLocked}
             className="flex items-center gap-2 text-xs font-medium text-stone-400 dark:text-slate-500 hover:text-stone-600 dark:hover:text-slate-300 transition-colors py-2 mb-2"
           >
             <Plus size={14} />
@@ -289,81 +243,37 @@ function DaySection({
         </div>
       )}
 
-      {showAddForm && (
-        <EventForm
-          onSave={(data) => { onAddEvent(data); setShowAddForm(false); }}
-          onClose={() => setShowAddForm(false)}
-        />
-      )}
-      {editingEvent && (
-        <EventForm
-          initial={editingEvent}
-          onSave={(data) => { onEditEvent(editingEvent.id, data); setEditingEvent(null); }}
-          onClose={() => setEditingEvent(null)}
-        />
-      )}
-      <ConfirmModal
-        isOpen={deleteEventId !== null}
-        title="Delete event"
-        message="Remove this event from the itinerary?"
-        confirmLabel="Delete"
-        onConfirm={() => { if (deleteEventId) { onDeleteEvent(deleteEventId); setDeleteEventId(null); } }}
-        onCancel={() => setDeleteEventId(null)}
-      />
-      <ConfirmModal
-        isOpen={showDeleteDay}
-        title="Delete day"
-        message={`Delete "${day.dayLabel}" and all its events?`}
-        confirmLabel="Delete"
-        onConfirm={() => { onDeleteDay(); setShowDeleteDay(false); }}
-        onCancel={() => setShowDeleteDay(false)}
-      />
+      <TripLockedModal isOpen={lockedOpen} onClose={() => setLockedOpen(false)} />
     </div>
   );
 }
 
 interface ItineraryTabProps {
   days: ItineraryDay[];
-  onToggleEvent: (dayId: string, eventId: string) => void;
-  onAddEvent: (dayId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
-  onEditEvent: (dayId: string, eventId: string, data: Omit<ItineraryEvent, 'id' | 'done'>) => void;
-  onDeleteEvent: (dayId: string, eventId: string) => void;
-  onReorderEvents: (dayId: string, eventIds: string[]) => void;
+  onToggleEvent: () => void;
+  onAddEvent: () => void;
+  onEditEvent: () => void;
+  onDeleteEvent: () => void;
+  onReorderEvents: () => void;
   onAddDay: () => void;
-  onEditDayLabel: (dayId: string, label: string) => void;
-  onDeleteDay: (dayId: string) => void;
+  onEditDayLabel: () => void;
+  onDeleteDay: () => void;
 }
 
-export default function ItineraryTab({
-  days,
-  onToggleEvent,
-  onAddEvent,
-  onEditEvent,
-  onDeleteEvent,
-  onReorderEvents,
-  onAddDay,
-  onEditDayLabel,
-  onDeleteDay,
-}: ItineraryTabProps) {
+export default function ItineraryTab({ days, onAddDay }: ItineraryTabProps) {
   return (
     <div>
       {days.map((day) => (
         <DaySection
           key={day.id}
           day={day}
-          onToggleEvent={(eventId) => onToggleEvent(day.id, eventId)}
-          onAddEvent={(data) => onAddEvent(day.id, data)}
-          onEditEvent={(eventId, data) => onEditEvent(day.id, eventId, data)}
-          onDeleteEvent={(eventId) => onDeleteEvent(day.id, eventId)}
-          onReorderEvents={(ids) => onReorderEvents(day.id, ids)}
-          onEditDayLabel={(label) => onEditDayLabel(day.id, label)}
-          onDeleteDay={() => onDeleteDay(day.id)}
+          onAddDay={onAddDay}
         />
       ))}
       <div className="px-4 py-4">
         <button
-          onClick={onAddDay}
-          className="flex items-center gap-2 text-sm font-medium text-stone-400 dark:text-slate-500 hover:text-stone-600 dark:hover:text-slate-300 border border-dashed border-stone-300 dark:border-slate-600 hover:border-stone-400 dark:hover:border-slate-500 rounded-xl px-4 py-3 w-full justify-center transition-colors"
+          disabled
+          className="flex items-center gap-2 text-sm font-medium text-stone-400 dark:text-slate-500 border border-dashed border-stone-300 dark:border-slate-600 rounded-xl px-4 py-3 w-full justify-center transition-colors opacity-40 cursor-not-allowed"
         >
           <Plus size={15} />
           Add day

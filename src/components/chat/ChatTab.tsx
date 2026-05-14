@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Plus, MapPin, Loader2, Bot, User, Trash2 } from 'lucide-react';
+import { Send, Plus, MapPin, Bot, User, Trash2, Lock } from 'lucide-react';
 import type { ChatMessage, ItineraryDay, Place, ParsedAction, ItineraryEvent } from '../../types';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+import TripLockedModal from '../TripLockedModal';
 
 interface ChatTabProps {
   messages: ChatMessage[];
@@ -12,10 +10,6 @@ interface ChatTabProps {
   places: Place[];
   onAddToItinerary: (dayId: string, event: Omit<ItineraryEvent, 'id' | 'done'>) => void;
   onAddToPlaces: (place: Omit<Place, 'id' | 'visited'>) => void;
-}
-
-function genId() {
-  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 }
 
 function parseActions(content: string): ParsedAction[] {
@@ -33,23 +27,6 @@ function parseActions(content: string): ParsedAction[] {
 
 function stripActions(content: string): string {
   return content.replace(/<action type="[^"]+">[\s\S]*?<\/action>/g, '').trim();
-}
-
-function buildTripContext(itinerary: ItineraryDay[], places: Place[]): string {
-  const lines: string[] = ['Trip: North Wales, 29–31 March 2026', ''];
-  lines.push('Itinerary:');
-  for (const day of itinerary) {
-    lines.push(`  ${day.dayLabel}:`);
-    for (const ev of day.events) {
-      lines.push(`    - ${ev.startTime || ev.time}: ${ev.title}${ev.location?.address ? ` (${ev.location.address})` : ''}`);
-    }
-  }
-  lines.push('');
-  lines.push('Places to visit:');
-  for (const p of places) {
-    lines.push(`  ${p.emoji} ${p.name}${p.visited ? ' ✓ visited' : ''}`);
-  }
-  return lines.join('\n');
 }
 
 function renderMarkdown(text: string): string {
@@ -146,70 +123,16 @@ function ActionButtons({ actions, itinerary, onAddToItinerary, onAddToPlaces }: 
 
 export default function ChatTab({
   messages,
-  onUpdateMessages,
   itinerary,
-  places,
   onAddToItinerary,
   onAddToPlaces,
 }: ChatTabProps) {
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [lockedOpen, setLockedOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    setError(null);
-
-    const userMsg: ChatMessage = { id: genId(), role: 'user', content: text, timestamp: Date.now() };
-    const next = [...messages, userMsg];
-    onUpdateMessages(next);
-
-    setLoading(true);
-    try {
-      const tripContext = buildTripContext(itinerary, places);
-      const apiMessages = next.map((m) => ({ role: m.role, content: m.content }));
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/claude-chat`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: apiMessages, tripContext }),
-      });
-
-      const data = await res.json() as { content?: string; error?: string };
-      if (!res.ok || data.error) throw new Error(data.error ?? `Request failed: ${res.status}`);
-
-      const assistantMsg: ChatMessage = {
-        id: genId(),
-        role: 'assistant',
-        content: data.content ?? '',
-        timestamp: Date.now(),
-      };
-      onUpdateMessages([...next, assistantMsg]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
-      onUpdateMessages(next);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
+  }, [messages]);
 
   const SUGGESTIONS = [
     'What should I pack for hiking in North Wales in March?',
@@ -223,7 +146,7 @@ export default function ChatTab({
       {messages.length > 0 && (
         <div className="flex justify-end px-4 pt-3 pb-1">
           <button
-            onClick={() => { onUpdateMessages([]); setError(null); }}
+            onClick={() => setLockedOpen(true)}
             className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-red-400 transition-colors"
           >
             <Trash2 size={12} />
@@ -247,7 +170,7 @@ export default function ChatTab({
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => { setInput(s); inputRef.current?.focus(); }}
+                  onClick={() => setLockedOpen(true)}
                   className="text-left text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 hover:bg-stone-100 transition-colors leading-relaxed"
                 >
                   {s}
@@ -300,48 +223,22 @@ export default function ChatTab({
           );
         })}
 
-        {loading && (
-          <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
-              <Bot size={14} className="text-stone-500" />
-            </div>
-            <div className="bg-stone-50 border border-stone-200 rounded-2xl rounded-tl-sm px-4 py-3">
-              <Loader2 size={15} className="text-stone-400 animate-spin" />
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
 
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-stone-200 bg-white px-3 py-3">
-        <div className="flex gap-2 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about your trip…"
-            rows={1}
-            className="flex-1 resize-none border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 outline-none focus:border-stone-400 bg-stone-50 leading-relaxed max-h-32 overflow-y-auto"
-            style={{ minHeight: '42px' }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || loading}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-stone-800 text-white rounded-xl hover:bg-stone-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send size={15} />
-          </button>
-        </div>
-        <p className="text-[10px] text-stone-400 mt-1.5 text-center">Shift+Enter for new line · Enter to send</p>
+      <div className="border-t border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+        <button
+          onClick={() => setLockedOpen(true)}
+          className="w-full flex items-center gap-3 bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-left transition-colors hover:border-stone-300 dark:hover:border-slate-600"
+        >
+          <Lock size={13} className="text-stone-400 dark:text-slate-500 flex-shrink-0" />
+          <span className="flex-1 text-sm text-stone-400 dark:text-slate-500">This trip is now read-only…</span>
+          <Send size={13} className="text-stone-300 dark:text-slate-600 flex-shrink-0" />
+        </button>
       </div>
+
+      <TripLockedModal isOpen={lockedOpen} onClose={() => setLockedOpen(false)} />
     </div>
   );
 }

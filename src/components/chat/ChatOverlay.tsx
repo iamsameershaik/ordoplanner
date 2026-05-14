@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Plus, MapPin, Loader2, Bot, User, Trash2, ArrowLeft, Sparkles, X } from 'lucide-react';
+import { Send, Plus, MapPin, User, Trash2, ArrowLeft, Sparkles, Lock } from 'lucide-react';
 import type { ChatMessage, ItineraryDay, Place, ParsedAction, ItineraryEvent } from '../../types';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+import TripLockedModal from '../TripLockedModal';
 
 interface ChatOverlayProps {
   messages: ChatMessage[];
@@ -12,10 +10,6 @@ interface ChatOverlayProps {
   places: Place[];
   onAddToItinerary: (dayId: string, event: Omit<ItineraryEvent, 'id' | 'done'>) => void;
   onAddToPlaces: (place: Omit<Place, 'id' | 'visited'>) => void;
-}
-
-function genId() {
-  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 }
 
 function parseActions(content: string): ParsedAction[] {
@@ -33,23 +27,6 @@ function parseActions(content: string): ParsedAction[] {
 
 function stripActions(content: string): string {
   return content.replace(/<action type="[^"]+">[\s\S]*?<\/action>/g, '').trim();
-}
-
-function buildTripContext(itinerary: ItineraryDay[], places: Place[]): string {
-  const lines: string[] = ['Trip: North Wales, 29–31 March 2026', ''];
-  lines.push('Itinerary:');
-  for (const day of itinerary) {
-    lines.push(`  ${day.dayLabel}:`);
-    for (const ev of day.events) {
-      lines.push(`    - ${ev.startTime || ev.time}: ${ev.title}${ev.location?.address ? ` (${ev.location.address})` : ''}`);
-    }
-  }
-  lines.push('');
-  lines.push('Places to visit:');
-  for (const p of places) {
-    lines.push(`  ${p.emoji} ${p.name}${p.visited ? ' ✓ visited' : ''}`);
-  }
-  return lines.join('\n');
 }
 
 function renderMarkdown(text: string): string {
@@ -149,18 +126,13 @@ const SUGGESTIONS = [
 
 export default function ChatOverlay({
   messages,
-  onUpdateMessages,
   itinerary,
-  places,
   onAddToItinerary,
   onAddToPlaces,
 }: ChatOverlayProps) {
   const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [lockedOpen, setLockedOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -170,66 +142,16 @@ export default function ChatOverlay({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages]);
 
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
-      setTimeout(() => inputRef.current?.focus(), 300);
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
   }, [open]);
-
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    setError(null);
-
-    const userMsg: ChatMessage = { id: genId(), role: 'user', content: text, timestamp: Date.now() };
-    const next = [...messages, userMsg];
-    onUpdateMessages(next);
-
-    setLoading(true);
-    try {
-      const tripContext = buildTripContext(itinerary, places);
-      const apiMessages = next.map((m) => ({ role: m.role, content: m.content }));
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/claude-chat`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: apiMessages, tripContext }),
-      });
-
-      const data = await res.json() as { content?: string; error?: string };
-      if (!res.ok || data.error) throw new Error(data.error ?? `Request failed: ${res.status}`);
-
-      const assistantMsg: ChatMessage = {
-        id: genId(),
-        role: 'assistant',
-        content: data.content ?? '',
-        timestamp: Date.now(),
-      };
-      onUpdateMessages([...next, assistantMsg]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
-      onUpdateMessages(next);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
 
   const hasMessages = messages.length > 0;
 
@@ -268,7 +190,7 @@ export default function ChatOverlay({
               </div>
               {hasMessages && (
                 <button
-                  onClick={() => { onUpdateMessages([]); setError(null); }}
+                  onClick={() => setLockedOpen(true)}
                   className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
                   aria-label="Clear chat"
                 >
@@ -295,7 +217,7 @@ export default function ChatOverlay({
                     {SUGGESTIONS.map((s) => (
                       <button
                         key={s}
-                        onClick={() => { setInput(s); inputRef.current?.focus(); }}
+                        onClick={() => setLockedOpen(true)}
                         className="text-left text-sm text-stone-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl px-4 py-3 active:bg-stone-50 dark:active:bg-slate-700 transition-colors leading-snug shadow-sm"
                       >
                         {s}
@@ -348,27 +270,6 @@ export default function ChatOverlay({
                 );
               })}
 
-              {loading && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-2xl bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <Sparkles size={13} className="text-stone-400 dark:text-slate-500" />
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <div className="flex gap-1 items-center h-5">
-                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-start gap-2">
-                  <X size={14} className="flex-shrink-0 mt-0.5" />
-                  {error}
-                </div>
-              )}
 
               <div ref={bottomRef} />
             </div>
@@ -376,29 +277,20 @@ export default function ChatOverlay({
 
           <div className="flex-shrink-0 bg-white dark:bg-slate-900/95 border-t border-stone-200/80 dark:border-slate-700/80 px-4 py-3 pb-safe">
             <div className="max-w-2xl mx-auto">
-              <div className="flex gap-2.5 items-end">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask about your trip…"
-                  rows={1}
-                  className="flex-1 resize-none border border-stone-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-stone-800 dark:text-slate-100 placeholder:text-stone-400 dark:placeholder:text-slate-500 outline-none focus:border-stone-400 dark:focus:border-slate-500 bg-stone-50 dark:bg-slate-800 leading-relaxed max-h-36 overflow-y-auto"
-                  style={{ minHeight: '46px' }}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || loading}
-                  className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-stone-900 text-white rounded-2xl active:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Send size={15} strokeWidth={2} />
-                </button>
-              </div>
+              <button
+                onClick={() => setLockedOpen(true)}
+                className="w-full flex items-center gap-3 bg-stone-50 dark:bg-slate-800 border border-stone-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-left group transition-colors hover:border-stone-300 dark:hover:border-slate-600"
+              >
+                <Lock size={14} className="text-stone-400 dark:text-slate-500 flex-shrink-0" />
+                <span className="flex-1 text-sm text-stone-400 dark:text-slate-500">This trip is now read-only…</span>
+                <Send size={14} className="text-stone-300 dark:text-slate-600 flex-shrink-0" />
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      <TripLockedModal isOpen={lockedOpen} onClose={() => setLockedOpen(false)} />
     </>
   );
 }
